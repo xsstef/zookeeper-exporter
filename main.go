@@ -188,7 +188,6 @@ func getMetrics(options *Options) map[string]string {
 
 		metrics[zkUp] = "1"
 	}
-
 	return metrics
 }
 
@@ -222,8 +221,25 @@ func sendZookeeperCmd(conn net.Conn, host, cmd string) string {
 // serve zk metrics at chosen address and url
 func serveMetrics(options *Options) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		for k, v := range getMetrics(options) {
-			fmt.Fprintf(w, "%s %s\n", k, v)
+		metrics := getMetrics(options)
+
+		downhost := ""
+		for _, h := range options.Hosts {
+			hostLabel := fmt.Sprintf("zk_host=%q", h)
+			zkUp := fmt.Sprintf("zk_up{%s}", hostLabel)
+			if metrics[zkUp] == "0" {
+				downhost = downhost + h + ","
+			}
+		}
+		downhost = strings.TrimSuffix(downhost, ",")
+
+		if len(downhost) != 0 {
+			err := fmt.Sprintf("dial tcp %s faild", downhost)
+			http.Error(w, err, http.StatusNotFound)
+		} else {
+			for k, v := range getMetrics(options) {
+				fmt.Fprintf(w, "%s %s\n", k, v)
+			}
 		}
 	}
 
