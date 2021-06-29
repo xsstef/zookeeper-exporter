@@ -235,7 +235,7 @@ func serveMetrics(options *Options) {
 
 		if len(downhost) != 0 {
 			err := fmt.Sprintf("dial tcp %s faild", downhost)
-			http.Error(w, err, http.StatusNotFound)
+			http.Error(w, err, http.StatusInternalServerError)
 		} else {
 			for k, v := range getMetrics(options) {
 				fmt.Fprintf(w, "%s %s\n", k, v)
